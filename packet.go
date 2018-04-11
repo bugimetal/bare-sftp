@@ -17,13 +17,6 @@ var (
 	errUnknownExtendedPacket = errors.New("unknown extended packet")
 )
 
-const (
-	debugDumpTxPacket      = false
-	debugDumpRxPacket      = false
-	debugDumpTxPacketBytes = false
-	debugDumpRxPacketBytes = false
-)
-
 func marshalUint32(b []byte, v uint32) []byte {
 	return append(b, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
 }
@@ -120,11 +113,7 @@ func sendPacket(w io.Writer, m encoding.BinaryMarshaler) error {
 	if err != nil {
 		return errors.Errorf("binary marshaller failed: %v", err)
 	}
-	if debugDumpTxPacketBytes {
-		debug("send packet: %s %d bytes %x", fxp(bb[0]), len(bb), bb[1:])
-	} else if debugDumpTxPacket {
-		debug("send packet: %s %d bytes", fxp(bb[0]), len(bb))
-	}
+
 	l := uint32(len(bb))
 	hdr := []byte{byte(l >> 24), byte(l >> 16), byte(l >> 8), byte(l)}
 	_, err = w.Write(hdr)
@@ -146,14 +135,9 @@ func recvPacket(r io.Reader) (uint8, []byte, error) {
 	l, _ := unmarshalUint32(b)
 	b = make([]byte, l)
 	if _, err := io.ReadFull(r, b); err != nil {
-		debug("recv packet %d bytes: err %v", l, err)
 		return 0, nil, err
 	}
-	if debugDumpRxPacketBytes {
-		debug("recv packet: %s %d bytes %x", fxp(b[0]), l, b[1:])
-	} else if debugDumpRxPacket {
-		debug("recv packet: %s %d bytes", fxp(b[0]), l)
-	}
+
 	return b[0], b[1:], nil
 }
 

@@ -121,13 +121,11 @@ func (s *packetManager) controller() {
 	for {
 		select {
 		case pkt := <-s.requests:
-			debug("incoming id: %v", pkt.id())
 			s.incoming = append(s.incoming, pkt.id())
 			if len(s.incoming) > 1 {
 				s.incoming.Sort()
 			}
 		case pkt := <-s.responses:
-			debug("outgoing pkt: %v", pkt.id())
 			s.outgoing = append(s.outgoing, pkt)
 			if len(s.outgoing) > 1 {
 				s.outgoing.Sort()
@@ -143,8 +141,6 @@ func (s *packetManager) controller() {
 func (s *packetManager) maybeSendPackets() {
 	for {
 		if len(s.outgoing) == 0 || len(s.incoming) == 0 {
-			debug("break! -- outgoing: %v; incoming: %v",
-				len(s.outgoing), len(s.incoming))
 			break
 		}
 		out := s.outgoing[0]

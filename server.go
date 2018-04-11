@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -183,6 +184,14 @@ func (svr *Server) sftpServerWorker(pktChan chan requestPacket) error {
 	return nil
 }
 
+func cleanPath(p string) string {
+	p = filepath.ToSlash(p)
+	if !filepath.IsAbs(p) {
+		p = "/" + p
+	}
+	return path.Clean(p)
+}
+
 func handlePacket(s *Server, p interface{}) error {
 	switch p := p.(type) {
 	case *sshFxInitPacket:
@@ -337,12 +346,10 @@ func (svr *Server) Serve() error {
 			switch errors.Cause(err) {
 			case errUnknownExtendedPacket:
 				if err := svr.serverConn.sendError(pkt, ErrSshFxOpUnsupported); err != nil {
-					debug("failed to send err packet: %v", err)
 					svr.conn.Close() // shuts down recvPacket
 					break
 				}
 			default:
-				debug("makePacket err: %v", err)
 				svr.conn.Close() // shuts down recvPacket
 				break
 			}
@@ -473,7 +480,6 @@ func (p sshFxpSetstatPacket) respond(svr *Server) error {
 	b := p.Attrs.([]byte)
 	var err error
 
-	debug("setstat name \"%s\"", p.Path)
 	if (p.Flags & ssh_FILEXFER_ATTR_SIZE) != 0 {
 		var size uint64
 		if size, b, err = unmarshalUint64Safe(b); err == nil {
@@ -520,7 +526,6 @@ func (p sshFxpFsetstatPacket) respond(svr *Server) error {
 	b := p.Attrs.([]byte)
 	var err error
 
-	debug("fsetstat name \"%s\"", f.Name())
 	if (p.Flags & ssh_FILEXFER_ATTR_SIZE) != 0 {
 		var size uint64
 		if size, b, err = unmarshalUint64Safe(b); err == nil {
@@ -591,7 +596,6 @@ func statusFromError(p ider, err error) sshFxpStatusPacket {
 		return ret
 	}
 
-	debug("statusFromError: error is %T %#v", err, err)
 	ret.StatusError.Code = ssh_FX_FAILURE
 	ret.StatusError.msg = err.Error()
 
@@ -599,7 +603,6 @@ func statusFromError(p ider, err error) sshFxpStatusPacket {
 	case syscall.Errno:
 		ret.StatusError.Code = translateErrno(e)
 	case *os.PathError:
-		debug("statusFromError,pathError: error is %T %#v", e.Err, e.Err)
 		if errno, ok := e.Err.(syscall.Errno); ok {
 			ret.StatusError.Code = translateErrno(errno)
 		}
