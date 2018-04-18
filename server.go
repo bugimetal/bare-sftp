@@ -6,7 +6,6 @@ import (
 	"encoding"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,14 +28,13 @@ const (
 // as specified at http://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
 type Server struct {
 	*serverConn
-	debugStream   io.Writer
-	readOnly      bool
-	pktMgr        *packetManager
-	openFiles     map[string]*os.File
-	openFilesLock sync.RWMutex
-	handleCount   int
-	maxTxPacket   uint32
-	systemRoot string
+	pktMgr          *packetManager
+	openFiles       map[string]*os.File
+	openFilesLock   sync.RWMutex
+	handleCount     int
+	maxTxPacket     uint32
+	systemRoot      string
+	validSystemRoot bool
 }
 
 func (svr *Server) nextHandle(f *os.File) string {
@@ -86,7 +84,6 @@ func NewServer(rwc io.ReadWriteCloser, options ...ServerOption) (*Server, error)
 	}
 	s := &Server{
 		serverConn:  svrConn,
-		debugStream: ioutil.Discard,
 		pktMgr:      newPktMgr(svrConn),
 		openFiles:   make(map[string]*os.File),
 		maxTxPacket: 1 << 15,
@@ -103,22 +100,6 @@ func NewServer(rwc io.ReadWriteCloser, options ...ServerOption) (*Server, error)
 
 // A ServerOption is a function which applies configuration to a Server.
 type ServerOption func(*Server) error
-
-// WithDebug enables Server debugging output to the supplied io.Writer.
-func WithDebug(w io.Writer) ServerOption {
-	return func(s *Server) error {
-		s.debugStream = w
-		return nil
-	}
-}
-
-// ReadOnly configures a Server to serve files in read-only mode.
-func ReadOnly() ServerOption {
-	return func(s *Server) error {
-		s.readOnly = true
-		return nil
-	}
-}
 
 // RootDirectory configures the root directory of a Server. Files will not be served outside this directory.
 func RootDirectory(root string) ServerOption {
@@ -139,7 +120,7 @@ func (svr *Server) sftpServerWorker(pktChan chan requestPacket) error {
 
 		// permission checks
 		permiss := true
-		if stat, err := os.Stat(svr.systemRoot); err == nil && stat.IsDir() {
+		if svr.validSystemRoot {
 			switch pkt := pkt.(type) {
 				case *sshFxpRenamePacket:
 					rel, e := filepath.Rel(svr.systemRoot, pkt.Oldpath)
@@ -155,22 +136,9 @@ func (svr *Server) sftpServerWorker(pktChan chan requestPacket) error {
 			}
 		}
 
-		// readonly checks
-		readonly := true
-		if permiss {
-			switch pkt := pkt.(type) {
-				case notReadOnly:
-					readonly = false
-				case *sshFxpOpenPacket:
-					readonly = pkt.readonly()
-				case *sshFxpExtendedPacket:
-					readonly = pkt.readonly()
-			}	
-		}
-
 		// If server is operating read-only and a write operation is requested, or a restricted file is requested,
 		// return permission denied.
-		if !permiss || (!readonly && svr.readOnly) {
+		if !permiss {
 			if err := svr.sendError(pkt, syscall.EPERM); err != nil {
 				return errors.Wrap(err, "failed to send read only packet response")
 			}
@@ -330,6 +298,8 @@ func (svr *Server) Serve() error {
 		}()
 	}
 	pktChan := svr.pktMgr.workerChan(runWorker)
+	stat, e := os.Stat(svr.systemRoot);
+	svr.validSystemRoot = e == nil && stat.IsDir()
 
 	var err error
 	var pkt requestPacket
@@ -362,8 +332,7 @@ func (svr *Server) Serve() error {
 	wg.Wait()      // wait for all workers to exit
 
 	// close any still-open files
-	for handle, file := range svr.openFiles {
-		fmt.Fprintf(svr.debugStream, "sftp server file with handle %q left open: %v\n", handle, file.Name())
+	for _, file := range svr.openFiles {
 		file.Close()
 	}
 	return err // error from recvPacket
