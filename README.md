@@ -1,5 +1,5 @@
 # bare-sftp
 
-The `bare-sftp` package removes all operations not supported by Barebones. It is a pruned version of the fantastic `sftp` package, with added functionality enabling for the restriction of the spawned SSH session's root directory.
+The `bare-sftp` (bsftp) is a SSH File Transfer Protocol Version 3 implementation written in Go. It forms the core of my SFTP server project, Barebones. Being version 3, it should support nearly all other SFTP client and server implementations.
 
-The README and repository for the parent project can be found at [sftp](https://github.com/pkg/sftp#sftp).
+> Copyright &copy; 2018 Elias Gabriel | https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
