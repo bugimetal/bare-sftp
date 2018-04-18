@@ -1,4 +1,4 @@
-package sftp
+package bsftp
 
 // sftp server counterpart
 

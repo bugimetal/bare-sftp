@@ -1,4 +1,4 @@
-package sftp
+package bsftp
 
 // ssh_FXP_ATTRS support
 // see http://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-5

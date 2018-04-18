@@ -1,6 +1,6 @@
-// Package sftp implements the SSH File Transfer Protocol as described in
+// Package bsftp implements the SSH File Transfer Protocol as described in
 // https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
-package sftp
+package bsftp
 
 import (
 	"fmt"

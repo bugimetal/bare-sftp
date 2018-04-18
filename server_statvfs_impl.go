@@ -3,7 +3,7 @@
 // fill in statvfs structure with OS specific values
 // Statfs_t is different per-kernel, and only exists on some unixes (not Solaris for instance)
 
-package sftp
+package bsftp
 
 import (
 	"syscall"

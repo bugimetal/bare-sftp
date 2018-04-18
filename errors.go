@@ -1,4 +1,4 @@
-package sftp
+package bsftp
 
 // Error types that match the SFTP's SSH_FXP_STATUS codes. Gives you more
 // direct control of the errors being sent vs. letting the library work them

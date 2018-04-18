@@ -1,6 +1,6 @@
 // +build !darwin,!linux
 
-package sftp
+package bsftp
 
 import (
 	"syscall"

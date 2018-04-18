@@ -1,4 +1,4 @@
-package sftp
+package bsftp
 
 import (
 	"encoding"
